@@ -9,6 +9,7 @@ from django.views.generic import DetailView
 
 from ..utils.get_languages import get_languages
 from urllib.parse import urlencode
+from ..contexts.service import page_service
 
 languages_list = get_languages()
 
@@ -26,7 +27,12 @@ class PageView(PageViewMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         if self.object is not None:
-            context.update(self.object.get_context(self.request, object=self.object))
+            service_class = page_service.get_service_by_name(type(self.object))
+            if service_class is None:
+                context.update(self.object.get_context(self.request, object=self.object))
+            else:
+                service = service_class()
+                context.update(service.get_context(self.request, object=self.object))
         return context
 
     def _get_home_page(self):
