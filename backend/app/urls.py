@@ -7,7 +7,10 @@ from garpix_page.views.page import PageView
 from django.conf.urls.i18n import i18n_patterns
 from multiurl import ContinueResolving, multiurl
 from django.http import Http404
-from .services import *
+from garpix_page.contexts.service import page_service
+from .services import CategoryPageService
+
+page_service.register(CategoryPageService)
 
 urlpatterns = [
     path('admin/', admin.site.urls),

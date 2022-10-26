@@ -2,14 +2,14 @@
 from atexit import register
 
 from ..models import Category
-from garpix_page.contexts.register import register
 from garpix_page.contexts.base_service import BasePageService
 
 
-@register(Category)
 class CategoryPageService(BasePageService):
+    page_model = Category
+
     def get_base_context(self, request, object):
-        print(self, request, object)
+        print(request, object, 'request, object')
         return {
             'hello_service': 'Hello, service'
         }

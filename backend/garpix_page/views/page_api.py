@@ -9,6 +9,7 @@ from django.conf import settings
 from garpix_page.mixins.views import PageViewMixin
 from ..serializers.serializer import get_serializer
 from ..utils.get_languages import get_languages
+from ..contexts.service import page_service
 
 model_list = []
 for model in django.apps.apps.get_models():
@@ -93,7 +94,7 @@ class PageApiView(PageViewMixin, views.APIView):
 
         page_context['global'] = import_string(settings.GARPIX_PAGE_GLOBAL_CONTEXT)(request, page)
         page_context['object'].update({
-            'components': page.get_components_context(request, api=True)
+            'components': page.get_components_context(request, api=True) # TODO удалить
         })
         data = {
             'page_model': page.__class__.__name__,

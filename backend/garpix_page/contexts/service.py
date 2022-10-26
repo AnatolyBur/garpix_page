@@ -1,5 +1,5 @@
 from garpix_page.models import BasePage
-
+from .base_service import BasePageService
 
 class AlreadyRegistered(Exception):
     pass
@@ -9,15 +9,15 @@ class PageService:
     def __init__(self):
         self._registry = {}
 
-    def register(self, model_or_iterable, service_class, **options): # service_class сделать дефолт
-        if isinstance(model_or_iterable, BasePage):
-            model_or_iterable = [model_or_iterable]
-        for _model in model_or_iterable:
-            model = _model
+    def register(self, service_or_iterable, **options): # service_class сделать дефолт
+        if issubclass(service_or_iterable, BasePageService):
+            service_or_iterable = [service_or_iterable]
+        for service in service_or_iterable:
+            model = service.page_model
             if model in self._registry:
                 msg = 'The model %s is already registered ' % model.__name__
                 raise AlreadyRegistered(msg)
-            self._registry[model] = service_class
+            self._registry[model] = service
         return True
 
     def is_registered(self, model):
