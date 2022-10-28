@@ -73,29 +73,35 @@ class PageApiView(PageViewMixin, views.APIView):
         if errors is not None:
             return errors
 
-        page_context = page.get_context(request, object=page, user=request.user, api=True)
-        for k, v in page_context.items():
-            if hasattr(v, 'is_for_page_view'):
-                model_serializer_class = get_serializer(v.__class__)
-                page_context[k] = model_serializer_class(v, context={"request": request}).data
-        if 'paginated_object_list' in page_context:
-            try:
-                serializer_class = get_serializer(page_context['paginated_object_list'][0].__class__)
-                page_context['paginated_object_list'] = serializer_class(page_context['paginated_object_list'],
-                                                                         context={"request": request}, many=True).data
-            except Exception:
-                page_context['paginated_object_list'] = list(
-                    {'id': x.id, 'title': x.title, 'get_absolute_url': x.get_absolute_url()} for x in
-                    page_context['paginated_object_list'])
-        if 'paginator' in page_context:
-            page_context['num_pages'] = page_context['paginator'].num_pages
-            page_context['per_page'] = page_context['paginator'].per_page
-            page_context.pop('paginator')
+        service_class = page_service.get_service_by_name(type(page))
+        model_serializer_class = get_serializer(page.__class__)
+        page_context = {
+            'object': model_serializer_class(page, context={"request": request}).data,
+            'global': import_string(settings.GARPIX_PAGE_GLOBAL_CONTEXT)(request, page)
+        }
 
-        page_context['global'] = import_string(settings.GARPIX_PAGE_GLOBAL_CONTEXT)(request, page)
-        page_context['object'].update({
-            'components': page.get_components_context(request, api=True) # TODO удалить
-        })
+        if service_class is None:
+            context = page.get_context(request, object=page, api=True)
+            context.pop('object')
+            page_context.update(context)
+            if 'paginated_object_list' in page_context:
+                try:
+                    serializer_class = get_serializer(page_context['paginated_object_list'][0].__class__)
+                    page_context['paginated_object_list'] = serializer_class(page_context['paginated_object_list'],
+                                                                            context={"request": request}, many=True).data
+                except Exception:
+                    page_context['paginated_object_list'] = list(
+                        {'id': x.id, 'title': x.title, 'get_absolute_url': x.get_absolute_url()} for x in
+                        page_context['paginated_object_list'])
+            if 'paginator' in page_context:  # ХАК если пришла не DRF пагинация
+                page_context['num_pages'] = page_context['paginator'].num_pages
+                page_context['per_page'] = page_context['paginator'].per_page
+                page_context.pop('paginator')
+        else:
+            service = service_class()
+            context = service.get_rest_context(request, page)
+            page_context.update(context)
+
         data = {
             'page_model': page.__class__.__name__,
             'init_state': page_context,

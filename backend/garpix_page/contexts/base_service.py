@@ -1,6 +1,6 @@
 class BasePageService:
     rest_serializer = None
-    
+
     def get_base_context(self, request, object):
         pass
 

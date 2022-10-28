@@ -12,7 +12,7 @@ class BaseListPage(BasePage):
     def get_context(self, request=None, *args, **kwargs):
         context = super().get_context(request, *args, **kwargs)
 
-        object_list = self.children.filter(is_active=True)
+        object_list = self.children.filter(is_active=True)  # TODO сделать не только для children
         paginator = GarpixPaginator(object_list, self.paginate_by)
 
         try:
