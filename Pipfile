@@ -22,7 +22,7 @@ eqator = ">=2.2.1"
 garpix-admin-lock = "==1.3.2"
 celery = "*"
 django-tabbed-admin-for-garpixcms = "==1.1.1"
-garpix-utils = "==1.10.0-rc24"
+garpix-utils = "==1.11.0"
 django-multiurl-for-garpix-page = "*"
 
 [dev-packages]

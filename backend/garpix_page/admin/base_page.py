@@ -4,9 +4,7 @@ from django.contrib import admin, messages
 from django.contrib.admin.options import IS_POPUP_VAR
 from django.template.response import TemplateResponse
 from django.utils.html import format_html
-from garpix_utils.logs.enums.get_enums import Action
-from garpix_utils.logs.loggers import ib_logger
-from garpix_utils.logs.mixins.create_log import CreateLogMixin
+from garpix_utils.cef_logs.mixins.create_log import CreateLogMixin
 
 from .forms import PageForm
 from ..models.base_page import BasePage
@@ -134,35 +132,33 @@ class PageAdmin(TabbedModelAdmin, TabbedTranslationAdmin, PolymorphicMPTTChildMo
         return super().get_fieldsets(request, obj)
 
     def save_model(self, request, obj, form, change):
-        log = self.log_change_or_create(ib_logger, request, obj, change)
+        events = self.logs_change_or_create(request, obj, change)
         super().save_model(request, obj, form, change)
-        ib_logger.write_string(log)
+        for event, params in events:
+            event(**params)
 
     def save_related(self, request, form, formsets, change):
         if change:
-            log = self.log_change_m2m_field(ib_logger, request, super(), form, formsets, change,
-                                            action_change=Action.any_entity_change.value)
-            if log:
-                ib_logger.write_string(log)
+            events = self.logs_change_m2m_field(request, super(), form, formsets, change)
+            for event, params in events:
+                event(**params)
         else:
             super().save_related(request, form, formsets, change)
 
     def delete_model(self, request, obj):
-        action = Action.any_entity_delete.value
-        log = self.log_delete(ib_logger, request, obj, action)
+        event, params = self.log_delete(request, obj)
         super().delete_model(request, obj)
-        ib_logger.write_string(log)
+        event(**params)
 
     def delete_queryset(self, request, queryset):
-        action = Action.any_entity_delete.value
-        logs = []
+        events = []
         for obj in queryset:
-            logs.append(self.log_delete(ib_logger, request, obj, action))
+            events.append(self.log_delete(request, obj))
 
         self.model.objects.filter(id__in=queryset.values_list('id', flat=True)).delete()
 
-        for log in logs:
-            ib_logger.write_string(log)
+        for event, params in events:
+            event(**params)
 
         self.model.objects.rebuild()
 
@@ -196,15 +192,14 @@ class RealPageAdmin(DraggableMPTTAdmin, TabbedTranslationAdmin, PolymorphicMPTTP
     readonly_fields = ('created_at', 'updated_at', 'model_name')
 
     def delete_queryset(self, cls, request, queryset):
-        action = Action.any_entity_delete.value
-        logs = []
+        events = []
         for obj in queryset:
-            logs.append(self.log_delete(ib_logger, request, obj, action))
+            events.append(self.log_delete(request, obj))
 
         self.model.objects.filter(id__in=queryset.values_list('id', flat=True)).delete()
 
-        for log in logs:
-            ib_logger.write_string(log)
+        for event, params in events:
+            event(**params)
 
         self.model.objects.rebuild()
 
@@ -247,8 +242,9 @@ class RealPageAdmin(DraggableMPTTAdmin, TabbedTranslationAdmin, PolymorphicMPTTP
             new_obj = obj.clone_object(title=title, slug=slug)
             new_obj.save()
 
-            log = self.log_change_or_create(ib_logger, request, new_obj, False)
-            ib_logger.write_string(log)
+            events = self.logs_change_or_create(request, new_obj, False)
+            for event, params in events:
+                event(**params)
 
     clone_object.short_description = 'Клонировать объект'
 
@@ -292,8 +288,9 @@ class RealPageAdmin(DraggableMPTTAdmin, TabbedTranslationAdmin, PolymorphicMPTTP
             new_obj = obj.clone_object(title=title, slug=slug)
             new_obj.save()
 
-            log = self.log_change_or_create(ib_logger, request, new_obj, False)
-            ib_logger.write_string(log)
+            events = self.logs_change_or_create(request, new_obj, False)
+            for event, params in events:
+                event(**params)
         link = reverse("admin:garpix_page_basepage_changelist")
         return HttpResponseRedirect(link)
 
